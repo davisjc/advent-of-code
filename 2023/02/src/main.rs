@@ -1,13 +1,10 @@
 use std::io;
+use std::cmp;
 use regex::Regex;
 
-static THRESHOLD_RED: u32 = 12;
-static THRESHOLD_GREEN: u32 = 13;
-static THRESHOLD_BLUE: u32 = 14;
-
-fn extract_color_amount(pattern: &regex::Regex, round: &str) -> u32 {
+fn extract_color_amount(pattern: &regex::Regex, round: &str) -> u64 {
     if let Some(caps) = pattern.captures(round) {
-        return caps[1].parse::<u32>().unwrap();
+        return caps[1].parse::<u64>().unwrap();
     }
     return 0;
 }
@@ -19,22 +16,17 @@ fn main() {
     let red_pattern = Regex::new(r"(\d+) red").unwrap();
     let green_pattern = Regex::new(r"(\d+) green").unwrap();
     let blue_pattern = Regex::new(r"(\d+) blue").unwrap();
-    'line: for line in io::stdin().lines().map(|l| l.unwrap()) {
-        let (_, [game_num, rounds]) = game_pattern.captures(&line).unwrap()
-                                                  .extract();
+    for line in io::stdin().lines().map(|l| l.unwrap()) {
+        let (_, [_, rounds]) = game_pattern.captures(&line).unwrap().extract();
+        let mut r: u64 = 0;
+        let mut g: u64 = 0;
+        let mut b: u64 = 0;
         for round in rounds_pattern.split(&rounds) {
-            if extract_color_amount(&red_pattern, &round) > THRESHOLD_RED {
-                continue 'line;
-            }
-            if extract_color_amount(&green_pattern, &round) > THRESHOLD_GREEN {
-                continue 'line;
-            }
-            if extract_color_amount(&blue_pattern, &round) > THRESHOLD_BLUE {
-                continue 'line;
-            }
+            r = cmp::max(extract_color_amount(&red_pattern, &round), r);
+            g = cmp::max(extract_color_amount(&green_pattern, &round), g);
+            b = cmp::max(extract_color_amount(&blue_pattern, &round), b);
         }
-        let game_num = game_num.parse::<u64>().unwrap();
-        total += game_num;
+        total += r * g * b;
     }
     println!("{total}");
 }
