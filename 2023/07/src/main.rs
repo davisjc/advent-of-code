@@ -25,6 +25,7 @@ impl Hand {
         let mut cards: [u8; 5] = [0; 5];
         for (i, c) in line[..5].char_indices() {
             cards[i] = match c {
+                'J' => 1,
                 '2' => 2,
                 '3' => 3,
                 '4' => 4,
@@ -34,7 +35,6 @@ impl Hand {
                 '8' => 8,
                 '9' => 9,
                 'T' => 10,
-                'J' => 11,
                 'Q' => 12,
                 'K' => 13,
                 'A' => 14,
@@ -42,23 +42,32 @@ impl Hand {
             };
         }
         let mut count_by_card: HashMap<u8, u8> = HashMap::new();
+        let mut joker_count: u8 = 0;
         for card in cards {
+            if card == 1 {
+                joker_count += 1;
+                continue;
+            }
             if !count_by_card.contains_key(&card) {
                 count_by_card.insert(card, 0);
             }
             *count_by_card.get_mut(&card).unwrap() += 1;
         }
         let t = match count_by_card.len() {
-            1 => HandType::FiveOfAKind,
+            0 | 1 => HandType::FiveOfAKind,
             2 => {
-                if count_by_card.values().any(|count| count == 4) {
+                if count_by_card.values().any(|count| {
+                    count + joker_count == 4
+                }) {
                     HandType::FourOfAKind
                 } else {
                     HandType::FullHouse
                 }
             },
             3 => {
-                if count_by_card.values().any(|count| count == 3) {
+                if count_by_card.values().any(|count| {
+                    count + joker_count == 3
+                }) {
                     HandType::ThreeOfAKind
                 } else {
                     HandType::TwoPair
