@@ -1,6 +1,7 @@
 use std::io;
 use std::io::{Lines, StdinLock};
 use std::collections::HashMap;
+use num;
 
 #[derive(Debug)]
 struct Turns {
@@ -12,6 +13,10 @@ impl Turns {
     fn new(line: &str) -> Turns {
         let data = line.chars().collect();
         Turns { data, pos: 0 }
+    }
+
+    fn reset(&mut self) {
+        self.pos = 0;
     }
 }
 
@@ -37,14 +42,14 @@ fn map_from_input(
     }).collect()
 }
 
-fn main() {
-    let mut lines_iter = io::stdin().lines();
-    let mut turns = Turns::new(&lines_iter.next().unwrap().unwrap());
-    lines_iter.next(); // skip blank line
-    let directions_by_node = map_from_input(&mut lines_iter);
+fn count_steps(
+    directions_by_node: &HashMap<String, (String, String)>, turns: &mut Turns,
+    start: &str
+) -> u64 {
+    turns.reset();
     let mut steps: u64 = 0;
-    let mut cur = "AAA";
-    while cur != "ZZZ" {
+    let mut cur = start;
+    while !cur.ends_with('Z') {
         let (left, right) = directions_by_node.get(cur).unwrap();
         let next_turn = turns.next().unwrap();
         cur = match next_turn {
@@ -54,5 +59,18 @@ fn main() {
         };
         steps += 1;
     }
+    steps
+}
+
+fn main() {
+    let mut lines_iter = io::stdin().lines();
+    let mut turns = Turns::new(&lines_iter.next().unwrap().unwrap());
+    lines_iter.next(); // skip blank line
+    let directions_by_node = map_from_input(&mut lines_iter);
+    let steps = directions_by_node
+        .keys()
+        .filter(|n| n.ends_with('A'))
+        .map(|start| count_steps(&directions_by_node, &mut turns, start))
+        .fold(1, num::integer::lcm);
     println!("{steps}");
 }
