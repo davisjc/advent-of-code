@@ -19,10 +19,10 @@ fn build_derivatives(nums: Vec<i64>) -> Vec<Vec<i64>> {
     derivatives
 }
 
-fn extrapolate_next(derivatives: Vec<Vec<i64>>) -> i64 {
+fn extrapolate_prev(derivatives: Vec<Vec<i64>>) -> i64 {
     let mut val: i64 = 0;
     for i in (0..(derivatives.len() - 1)).rev() {
-        val += derivatives.get(i).unwrap().last().unwrap();
+        val = derivatives.get(i).unwrap().first().unwrap() - val;
     }
     val
 }
@@ -33,7 +33,7 @@ fn main() {
         .map(|line| line.unwrap())
         .map(extract_nums)
         .map(build_derivatives)
-        .map(extrapolate_next)
+        .map(extrapolate_prev)
         .sum();
     println!("{total}");
 }
