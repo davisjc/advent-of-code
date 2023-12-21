@@ -28,10 +28,10 @@ fn main() {
             let intervening_cols = (min(a_col, b_col) + 1)..max(a_col, b_col);
             total += intervening_rows
                 .filter(|row| !occupied_rows.contains(row))
-                .count();
+                .fold(0, |total, _| total + 999999);
             total += intervening_cols
                 .filter(|col| !occupied_cols.contains(col))
-                .count();
+                .fold(0, |total, _| total + 999999);
         }
     }
     println!("{total}");
