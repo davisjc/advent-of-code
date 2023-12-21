@@ -1,9 +1,10 @@
 use std::io;
 use std::io::Stdin;
+use std::collections::HashSet;
 use PipeShape::*;
 use Location::*;
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 enum PipeShape {
     Vertical,
     Horizontal,
@@ -123,6 +124,7 @@ impl Location {
 struct Map {
     grid: Vec<Vec<Location>>,
     start: (i64, i64),
+    pipe: HashSet<(i64, i64)>,
 }
 
 impl Map {
@@ -149,11 +151,16 @@ impl Map {
                 }
             }
         }
-        Map { grid, start }
+        let pipe = HashSet::new();
+        Map { grid, start, pipe }
     }
 
     fn lookup(&self, row: i64, col: i64) -> Option<&Location> {
         Location::lookup(&self.grid, row, col)
+    }
+
+    fn is_pipe(&self, row: i64, col: i64) -> bool {
+        self.pipe.contains(&(row, col))
     }
 
     fn get_neighbors(&self, row: i64, col: i64) -> ((i64, i64), (i64, i64)) {
@@ -170,7 +177,7 @@ impl Map {
         }
     }
 
-    fn measure_loop(&self, row: i64, col: i64) -> i64 {
+    fn mark_loop(&mut self, row: i64, col: i64) -> i64 {
         let start = (row, col);
         let mut cur = start;
         let mut prev = cur;
@@ -181,6 +188,7 @@ impl Map {
             let next_prev = cur;
             cur = if next1 == prev { next2 } else { next1 };
             prev = next_prev;
+            self.pipe.insert(cur);
             count += 1;
             if cur == start {
                 break;
@@ -188,12 +196,59 @@ impl Map {
         }
         count
     }
+
+    fn count_insides(&self) -> usize {
+        let mut total = 0;
+        let row_count = self.grid.len();
+        let col_count = self.grid.first().unwrap().len();
+        for row in 0..row_count {
+            let mut inside = false;
+            let mut last_eastward_elbow = Horizontal; // track runs of pipe
+            for col in 0..col_count {
+                let row = row as i64;
+                let col = col as i64;
+                if self.is_pipe(row, col) {
+                    let cur = self.lookup(row, col).unwrap();
+                    match *cur {
+                        Pipe(Vertical) => {
+                            inside = !inside;
+                        },
+                        Pipe(Horizontal) => continue,
+                        Pipe(ElbowNorthEast) => {
+                            last_eastward_elbow = ElbowNorthEast;
+                        },
+                        Pipe(ElbowSouthEast) => {
+                            last_eastward_elbow = ElbowSouthEast;
+                        },
+                        Pipe(ElbowNorthWest) => {
+                            if last_eastward_elbow == ElbowSouthEast {
+                                inside = !inside;
+                            }
+                        },
+                        Pipe(ElbowSouthWest) => {
+                            if last_eastward_elbow == ElbowNorthEast {
+                                inside = !inside;
+                            }
+                        },
+                        Empty | UninitializedStart => {
+                            panic!("location reported as pipe, but wasn't");
+                        },
+                    }
+                } else {
+                    if inside {
+                        total += 1;
+                    }
+                }
+            }
+        }
+        total
+    }
 }
 
 fn main() {
-    let map = Map::new(io::stdin());
+    let mut map = Map::new(io::stdin());
     let (start_row, start_col) = map.start;
-    let distance = map.measure_loop(start_row, start_col);
-    let distance = distance / 2;
-    println!("{distance}");
+    map.mark_loop(start_row, start_col);
+    let total = map.count_insides();
+    println!("{total}");
 }
